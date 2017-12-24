@@ -4,13 +4,27 @@ using UnityEngine;
 
 public class CameraRaycat : MonoBehaviour {
 
-    public Layers[] priorityLayers = new Layers[] { Layers.Enemy, Layers.Walkable };
+    public Layer[] priorityLayers = new Layer[] { Layer.Enemy, Layer.Walkable };
 
     private RaycastHit _raycastHit;
     public RaycastHit RaycastHit { get { return _raycastHit; } }
 
-    private Layers _layerHit;
-    public Layers LayerHit { get { return _layerHit; } }
+    private Layer _layerHit;
+    public Layer CurrentLayerHit
+    {
+        get { return _layerHit; }
+        private set
+        {
+            if(_layerHit != value)
+            {
+                _layerHit = value;
+                OnLayerChanged(_layerHit);
+            }
+        }
+    }
+
+    public delegate void onLayerChanged(Layer newLayer);
+    public event onLayerChanged OnLayerChanged;
 
     [SerializeField] float distanceToBackground = 100f;
 
@@ -29,17 +43,17 @@ public class CameraRaycat : MonoBehaviour {
 
             if(hit.HasValue)
             {
+                CurrentLayerHit = layer;
                 _raycastHit = hit.Value;
-                _layerHit = layer;
                 return;
             }
         }
 
         _raycastHit.distance = distanceToBackground;
-        _layerHit = Layers.EndToPoint;
+        CurrentLayerHit = Layer.EndToPoint;
 	}
 
-    RaycastHit? LayerRaycast(Layers layer)
+    RaycastHit? LayerRaycast(Layer layer)
     {
         int layerMask = 1 << (int)layer;
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
