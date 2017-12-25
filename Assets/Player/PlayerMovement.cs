@@ -5,10 +5,11 @@ using UnityStandardAssets.Characters.ThirdPerson;
 public class PlayerMovement : MonoBehaviour
 {
     private ThirdPersonCharacter _thirdPersonCharacter;
-    private Vector3 _currentClickTarget;
+    private Vector3 _currentDestination, _clickToPoint;
     private CameraRaycat _cameraRaycat;
 
-    [SerializeField] private float _walkMoveStopRadius = 0.1f;
+    [SerializeField] private float _walkMoveStopRadius = 0.2f;
+    [SerializeField] private float _attackRadius = 3f;
 
     private bool isInDirectMode = false;
 
@@ -23,7 +24,7 @@ public class PlayerMovement : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.G)) //TODO: add to menu
         {
             isInDirectMode = !isInDirectMode;
-            _currentClickTarget = transform.position;
+            _currentDestination = transform.position;
         }
 
         if(isInDirectMode)
@@ -52,20 +53,26 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
+            _clickToPoint = _cameraRaycat.RaycastHit.point;
             switch (_cameraRaycat.CurrentLayerHit)
             {
                 case Layer.Walkable:
-                    _currentClickTarget = _cameraRaycat.RaycastHit.point;
+                    _currentDestination = ShortDestination(_clickToPoint, _walkMoveStopRadius);
                     break;
                 case Layer.Enemy:
-                    print("not move to enemy");
+                    _currentDestination = ShortDestination(_clickToPoint, _attackRadius);
                     break;
             }
         }
 
-        var playerToClickPoint = _currentClickTarget - transform.position;
+        WalkToDestination();
+    }
 
-        if (playerToClickPoint.magnitude >= _walkMoveStopRadius)
+    private void WalkToDestination()
+    {
+        var playerToClickPoint = _currentDestination - transform.position;
+
+        if (playerToClickPoint.magnitude >= 0)
         {
             _thirdPersonCharacter.Move(playerToClickPoint, false, false);
         }
@@ -73,5 +80,22 @@ public class PlayerMovement : MonoBehaviour
         {
             _thirdPersonCharacter.Move(Vector3.zero, false, false);
         }
+    }
+
+    private Vector3 ShortDestination(Vector3 destination, float shortening)
+    {
+        Vector3 reductionVector = (destination - transform.position).normalized * shortening;
+        return destination - reductionVector;
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.black;
+        Gizmos.DrawLine(transform.position, _clickToPoint);
+        Gizmos.DrawSphere(_clickToPoint, 0.2f);
+        Gizmos.DrawSphere(_currentDestination, 0.1f);
+
+        Gizmos.color = new Color(255, 0, 0);
+        Gizmos.DrawWireSphere(transform.position, _attackRadius);
     }
 }
